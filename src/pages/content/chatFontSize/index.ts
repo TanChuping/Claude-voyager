@@ -1,0 +1,313 @@
+/**
+ * Adjusts the chat message font size based on user settings (stored as percentage)
+ */
+
+const STYLE_ID = 'gpt-voyager-chat-font-size';
+const CODE_STYLE_ID = 'gpt-voyager-code-font-size';
+const DEFAULT_PERCENT = 100;
+const MIN_PERCENT = 80;
+const MAX_PERCENT = 150;
+
+const ENABLED_KEY = 'cvChatFontSizeEnabled';
+const VALUE_KEY = 'cvChatFontSize';
+const CODE_ENABLED_KEY = 'cvCodeFontSizeEnabled';
+const CODE_VALUE_KEY = 'cvCodeFontSize';
+
+const clampPercent = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, Math.round(value)));
+
+const normalizePercent = (value: number, fallback: number) => {
+  if (!Number.isFinite(value)) return fallback;
+  return clampPercent(value, MIN_PERCENT, MAX_PERCENT);
+};
+
+function applyFontSize(percent: number) {
+  const normalized = normalizePercent(percent, DEFAULT_PERCENT);
+  const sizeValue = `${normalized}%`;
+
+  let style = document.getElementById(STYLE_ID) as HTMLStyleElement;
+  if (!style) {
+    style = document.createElement('style');
+    style.id = STYLE_ID;
+    document.head.appendChild(style);
+  }
+
+  style.textContent = `
+    /* Claude user-message bubble (top priority on claude.ai) */
+    [data-testid="user-message"],
+    [data-testid="user-message"] p,
+    [data-user-message-bubble="true"] [data-testid="user-message"] {
+      font-size: ${sizeValue} !important;
+      line-height: 1.55 !important;
+    }
+
+    /* Claude assistant response markdown */
+    .font-claude-response,
+    .font-claude-response p,
+    .font-claude-response li,
+    .font-claude-response td,
+    .font-claude-response th,
+    [data-is-streaming] .font-claude-response,
+    [data-is-streaming] .font-claude-response p,
+    [data-is-streaming] .font-claude-response li {
+      font-size: ${sizeValue} !important;
+      line-height: 1.65 !important;
+    }
+
+    /* Legacy fallback selectors for ChatGPT / Gemini (kept so the same
+       extension still works on chatgpt.com if run there). */
+    .query-text,
+    .query-text-line,
+    user-query-content .gds-body-l,
+    user-query .gds-body-l,
+    .user-query-bubble-with-background .gds-body-l,
+    div[aria-label="User message"] .gds-body-l,
+    [data-message-author-role="user"] .gds-body-l {
+      font-size: ${sizeValue} !important;
+      line-height: 1.6 !important;
+    }
+
+    message-content,
+    .response-content,
+    model-response .markdown,
+    model-response .markdown-main-panel,
+    .model-response .markdown,
+    [data-message-author-role="assistant"] .markdown,
+    [data-message-author-role="assistant"] .prose,
+    [data-message-author-role="assistant"] p,
+    [data-message-author-role="assistant"] li,
+    article[data-testid^="conversation-turn-"] .markdown,
+    article[data-testid^="conversation-turn-"] .prose,
+    [data-message-author-role="model"] .markdown {
+      font-size: ${sizeValue} !important;
+      line-height: 1.6 !important;
+    }
+
+    /* Markdown block elements that may have their own font-size */
+    model-response p,
+    model-response li,
+    model-response td,
+    model-response th,
+    .model-response p,
+    .model-response li,
+    .model-response td,
+    .model-response th,
+    message-content p,
+    message-content li,
+    message-content td,
+    message-content th,
+    [data-message-author-role] p,
+    [data-message-author-role] li,
+    [data-message-author-role] td,
+    [data-message-author-role] th {
+      font-size: ${sizeValue} !important;
+      line-height: 1.6 !important;
+    }
+
+  `;
+}
+
+function applyCodeFontSize(percent: number) {
+  const normalized = normalizePercent(percent, DEFAULT_PERCENT);
+  const sizeValue = `${normalized}%`;
+
+  let style = document.getElementById(CODE_STYLE_ID) as HTMLStyleElement;
+  if (!style) {
+    style = document.createElement('style');
+    style.id = CODE_STYLE_ID;
+    document.head.appendChild(style);
+  }
+
+  style.textContent = `
+    /* Claude code blocks — both inline <code> and fenced <pre><code>. */
+    .font-claude-response pre,
+    .font-claude-response pre code,
+    .font-claude-response code,
+    [data-is-streaming] pre,
+    [data-is-streaming] pre code,
+
+    /* ChatGPT code blocks, including the current CodeMirror-backed cm-content renderer. */
+    pre.cm-content,
+    pre.cm-content code,
+    .cm-content,
+    .cm-content code,
+    code-block pre,
+    code-block code,
+    .code-container pre,
+    .code-container code,
+    .formatted-code-block-internal-container pre,
+    .formatted-code-block-internal-container code,
+    [data-message-author-role] pre,
+    [data-message-author-role] pre code,
+    model-response pre,
+    model-response pre code,
+    .model-response pre,
+    .model-response pre code,
+    message-content pre,
+    message-content pre code {
+      font-size: ${sizeValue} !important;
+      line-height: 1.5 !important;
+    }
+
+    pre.cm-content span,
+    .cm-content span,
+    code-block pre span,
+    .formatted-code-block-internal-container pre span,
+    [data-message-author-role] pre span {
+      font-size: inherit !important;
+      line-height: inherit !important;
+    }
+  `;
+}
+
+function removeStyles() {
+  const style = document.getElementById(STYLE_ID);
+  if (style) {
+    style.remove();
+  }
+}
+
+function removeCodeStyles() {
+  const style = document.getElementById(CODE_STYLE_ID);
+  if (style) {
+    style.remove();
+  }
+}
+
+export function startChatFontSizeAdjuster() {
+  let currentPercent = DEFAULT_PERCENT;
+  let enabled = false;
+  let currentCodePercent = DEFAULT_PERCENT;
+  let codeEnabled = false;
+
+  // DEBUG MARKER — visible from page-world so we can verify the feature ran.
+  try {
+    document.documentElement.setAttribute('data-cv-font-started', '1');
+  } catch {
+    /* ignore */
+  }
+
+  // Load initial state
+  chrome.storage?.sync?.get([VALUE_KEY, ENABLED_KEY, CODE_VALUE_KEY, CODE_ENABLED_KEY], (res) => {
+    try {
+      document.documentElement.setAttribute(
+        'data-cv-font-storage',
+        JSON.stringify({
+          v: res?.[VALUE_KEY] ?? null,
+          en: res?.[ENABLED_KEY] ?? null,
+        }),
+      );
+    } catch {
+      /* ignore */
+    }
+    const storedValue = res?.[VALUE_KEY];
+    const numericValue = typeof storedValue === 'number' ? storedValue : DEFAULT_PERCENT;
+    const normalized = normalizePercent(numericValue, DEFAULT_PERCENT);
+    currentPercent = normalized;
+
+    enabled = res?.[ENABLED_KEY] === true;
+
+    if (enabled) {
+      applyFontSize(currentPercent);
+    }
+
+    const storedCodeValue = res?.[CODE_VALUE_KEY];
+    const numericCodeValue =
+      typeof storedCodeValue === 'number' ? storedCodeValue : DEFAULT_PERCENT;
+    const normalizedCode = normalizePercent(numericCodeValue, DEFAULT_PERCENT);
+    currentCodePercent = normalizedCode;
+
+    codeEnabled = res?.[CODE_ENABLED_KEY] === true;
+
+    if (codeEnabled) {
+      applyCodeFontSize(currentCodePercent);
+    }
+
+    if (typeof storedValue === 'number' && storedValue !== normalized) {
+      try {
+        chrome.storage?.sync?.set({ [VALUE_KEY]: normalized });
+      } catch {}
+    }
+
+    if (typeof storedCodeValue === 'number' && storedCodeValue !== normalizedCode) {
+      try {
+        chrome.storage?.sync?.set({ [CODE_VALUE_KEY]: normalizedCode });
+      } catch {}
+    }
+  });
+
+  // Listen for changes from storage
+  const storageChangeHandler = (
+    changes: Record<string, chrome.storage.StorageChange>,
+    area: string,
+  ) => {
+    if (area !== 'sync') return;
+
+    if (changes[ENABLED_KEY]) {
+      enabled = changes[ENABLED_KEY].newValue === true;
+      if (enabled) {
+        applyFontSize(currentPercent);
+      } else {
+        removeStyles();
+      }
+    }
+
+    if (changes[VALUE_KEY]) {
+      const newValue = changes[VALUE_KEY].newValue;
+      if (typeof newValue === 'number') {
+        const normalized = normalizePercent(newValue, DEFAULT_PERCENT);
+        currentPercent = normalized;
+        if (enabled) {
+          applyFontSize(currentPercent);
+        }
+
+        if (normalized !== newValue) {
+          try {
+            chrome.storage?.sync?.set({ [VALUE_KEY]: normalized });
+          } catch {}
+        }
+      }
+    }
+
+    if (changes[CODE_ENABLED_KEY]) {
+      codeEnabled = changes[CODE_ENABLED_KEY].newValue === true;
+      if (codeEnabled) {
+        applyCodeFontSize(currentCodePercent);
+      } else {
+        removeCodeStyles();
+      }
+    }
+
+    if (changes[CODE_VALUE_KEY]) {
+      const newValue = changes[CODE_VALUE_KEY].newValue;
+      if (typeof newValue === 'number') {
+        const normalized = normalizePercent(newValue, DEFAULT_PERCENT);
+        currentCodePercent = normalized;
+        if (codeEnabled) {
+          applyCodeFontSize(currentCodePercent);
+        }
+
+        if (normalized !== newValue) {
+          try {
+            chrome.storage?.sync?.set({ [CODE_VALUE_KEY]: normalized });
+          } catch {}
+        }
+      }
+    }
+  };
+
+  chrome.storage?.onChanged?.addListener(storageChangeHandler);
+
+  // Clean up on unload
+  window.addEventListener(
+    'beforeunload',
+    () => {
+      removeStyles();
+      removeCodeStyles();
+      try {
+        chrome.storage?.onChanged?.removeListener(storageChangeHandler);
+      } catch {}
+    },
+    { once: true },
+  );
+}

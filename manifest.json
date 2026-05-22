@@ -1,0 +1,75 @@
+{
+  "manifest_version": 3,
+  "default_locale": "en",
+  "name": "__MSG_extName__",
+  "description": "__MSG_extDescription__",
+  "version": "1.0.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0RM/8A7NxiTKDtI80cDiwhMP0cJye471M+F/a/QsbjdzmbzMXy0EKmcM+Ul338hK4HPknYQV7FTzcGaPLFgdm1oMJi+RTICi5x1OXXzoSfXfPspeFTQ/dZXkHSkD7eGjcPyGzbnG7LuCgj4WWfgaBP9qdH742F25XR5yN9w9fQLbwpKuCJtg7a+YUQRSsO885CcADBURHm1p+w6egvzbASzeFSHo1YCCAkIGmIALhrI1vp4ru0FNPyh+ujDnCG0yBZUcWxn73J/f0t70Omo5duKWKHEDYsi+oNEz3rEBDU5rA35U72EnBHCFDQ4zvX1dwiQMirwKaymE8Kxhjw1K4wIDAQAB",
+  "action": {
+    "default_popup": "src/pages/popup/index.html",
+    "default_icon": {
+      "16": "icon-16.png",
+      "32": "icon-32.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
+    }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "claude-voyager@local",
+      "strict_min_version": "109.0"
+    }
+  },
+  "options_ui": {
+    "page": "src/pages/options/index.html",
+    "open_in_tab": true
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "32": "icon-32.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "permissions": ["storage", "scripting"],
+  "host_permissions": [
+    "https://claude.ai/*",
+    "https://*.anthropic.com/*"
+  ],
+  "optional_host_permissions": ["https://*/*", "http://*/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'"
+  },
+  "background": {
+    "service_worker": "src/pages/background/index.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": ["src/pages/content/index.tsx"],
+      "css": ["contentStyle.css"]
+    },
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": ["src/pages/pageWorld/conversationHook.ts"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "contentStyle.css",
+        "icon-16.png",
+        "icon-32.png",
+        "icon-48.png",
+        "icon-128.png",
+        "katex-config.js",
+        "prevent-auto-scroll.js",
+        "assets/*.js",
+        "assets/*.png"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

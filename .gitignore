@@ -1,0 +1,95 @@
+# ─── Build output ──────────────────────────────────────────────────────────
+node_modules/
+/dist_chrome/
+/dist_firefox/
+/dist_safari/
+store_packages/
+
+# Packaged extension zips built locally for distribution
+claude-voyager-*.zip
+voyager-edge-v*.zip
+
+# Caches
+.npm-cache/
+.entire/
+
+# ─── Sensitive: extension signing key ──────────────────────────────────────
+# .pem is the PRIVATE RSA key that signs the extension; the .json/.txt
+# variants hold the same key material in other shapes.  None of these belong
+# in the repo.  The PUBLIC key fingerprint is already inlined in manifest.json
+# under `key` — that's the only piece consumers need.
+.extension-key.*
+
+# ─── Sensitive: personal handover / dev notes ──────────────────────────────
+# Local-only docs that contain account details, support QR setup, paid
+# distribution URLs, or other info that shouldn't ship publicly.
+公式交接.md
+LOCAL_DEVELOPMENT.md
+SYNC_SERVICE_ARCHITECTURE.md
+support-goal.json
+support-assets/
+
+# ─── Local test artefacts ──────────────────────────────────────────────────
+# browser-harness probe scripts + screenshots, all named .tmp_* by convention.
+# Screenshots routinely contain the developer's actual Claude conversation
+# content, so they MUST stay local.
+.tmp_*
+.preview/
+.chrome-dev-data/
+chrome-debug/
+diagnostics/
+
+# ─── Vitest / coverage ─────────────────────────────────────────────────────
+coverage/
+.vitest/
+
+# ─── Editor / OS / Claude Code noise ───────────────────────────────────────
+.vscode/
+.idea/
+.claude/
+.DS_Store
+*.local
+.env
+.env.*
+!.env.example
+
+# ─── Logs ──────────────────────────────────────────────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.git-commit-message.txt
+
+# ─── Demo media (heavy; explicit whitelist for docs/) ──────────────────────
+*.mov
+*.mp4
+!docs/public/assets/*.mov
+!docs/public/assets/*.mp4
+*.xpi
+*.srt
+
+# ─── VitePress ─────────────────────────────────────────────────────────────
+docs/.vitepress/dist
+docs/.vitepress/cache
+
+# ─── Legacy: Gemini/Xcode bits inherited from upstream ─────────────────────
+/Gemini Voyager/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+safari/Models/Gemini*
+*.dmg
+
+# ─── Misc local-only tooling ───────────────────────────────────────────────
+scripts/chrome-profile/
+manage-support-goal.cmd
+scripts/support-goal-gui.mjs
+scripts/support-goal-manager.mjs
+
+# ─── Worktrees / agent scratch ─────────────────────────────────────────────
+.worktrees/
+.agent/
+docs/plans/
+output/
+GPT-Voyager/diagnostics/
+src/pages/content/printBridge/
+gemini-voyager-formal/
