@@ -15,7 +15,7 @@ export default mergeConfig(
           ...baseManifest,
           browser_specific_settings: {
             gecko: {
-              id: 'gpt-voyager@local',
+              id: 'claude-voyager@tanchuping.local',
               strict_min_version: '115.0',
               data_collection_permissions: {
                 required: ['none'],

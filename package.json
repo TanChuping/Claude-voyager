@@ -17,6 +17,7 @@
     "build:safari": "vite build --config vite.config.safari.ts",
     "build:all": "bun run build:chrome && bun run build:firefox && bun run build:safari",
     "pack:webstore": "bun run build:chrome && node scripts/pack-webstore.cjs",
+    "pack:firefox": "bun run build:firefox && node scripts/pack-firefox.cjs",
     "dev": "nodemon --config nodemon.chrome.json",
     "dev:chrome": "nodemon --config nodemon.chrome.json",
     "dev:chrome-open": "bun scripts/launch-chrome.cjs",
