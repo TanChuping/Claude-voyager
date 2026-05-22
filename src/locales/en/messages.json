@@ -15,7 +15,7 @@
     "message": "Export format"
   },
   "singleConvExportFormatHint": {
-    "message": "Picks the format used by the download button next to ChatGPT's Share. Simplified variants strip Code Interpreter blocks, tool output, and the model's pre-tool narration — keeping only your messages, the final reply, and timestamps."
+    "message": "Picks the format used by the download button next to Claude's Share. Simplified variants strip tool blocks, tool output, and the model's pre-tool narration — keeping only your messages, the final reply, and timestamps."
   },
   "singleConvExportFormatMarkdown": {
     "message": "Standard Markdown"
@@ -189,7 +189,7 @@
     "message": "Export or import local Prompt Manager data."
   },
   "pm_backup_step1": {
-    "message": "Open ChatGPT."
+    "message": "Open Claude."
   },
   "pm_backup_step2": {
     "message": "Open Prompt Manager."
@@ -618,7 +618,7 @@
     "message": "Hide Prompt Manager"
   },
   "hidePromptManagerHint": {
-    "message": "Hide the Prompt Manager entry on ChatGPT."
+    "message": "Hide the Prompt Manager entry on Claude."
   },
   "promptInsertOnClick": {
     "message": "Insert prompt on click"
@@ -894,7 +894,7 @@
     "message": "{modifier}+I toggles composer collapse."
   },
   "inputCollapsePlaceholder": {
-    "message": "Message ChatGPT"
+    "message": "Message Claude"
   },
   "allowCollapseWhenNotEmpty": {
     "message": "Collapse when filled"
