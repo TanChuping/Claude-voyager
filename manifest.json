@@ -35,7 +35,6 @@
     "https://claude.ai/*",
     "https://*.anthropic.com/*"
   ],
-  "optional_host_permissions": ["https://*/*", "http://*/*"],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self'"
   },
