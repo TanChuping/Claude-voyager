@@ -93,3 +93,18 @@ This project is distributed under GPL-3.0, following the original license of Gem
 - Claude DOM reference: [claude-nexus](https://github.com/Qiuner/claude-nexus) (MIT) — see `THIRD_PARTY_NOTICES.md`
 
 If you redistribute modified versions, keep the GPL-3.0 license and preserve attribution to the upstream projects.
+
+## Support The Author
+
+Claude-Voyager is free and will stay free. If it saved you some time and you feel like buying the author a coffee (or a Sony keyboard), any of these work:
+
+- **Ko-fi** — [ko-fi.com/nekonekomeowmeow](https://ko-fi.com/nekonekomeowmeow)
+- **微信 / WeChat** and **支付宝 / Alipay** — scan the QR code below
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/TanChuping/chatgpt-voyager-support/refs/heads/main/support-assets/wechat-qr.png" alt="WeChat QR" width="220" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="https://raw.githubusercontent.com/TanChuping/chatgpt-voyager-support/refs/heads/main/support-assets/alipay-qr.jpg" alt="Alipay QR" width="220" />
+</p>
+
+Thanks. Seriously.
