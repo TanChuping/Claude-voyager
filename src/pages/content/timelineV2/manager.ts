@@ -536,6 +536,9 @@ export class TimelineV2 {
 
     const trackInner = document.createElement('div');
     trackInner.className = 'cv-tl-track';
+    // 10 px top + bottom padding gives the first / last dot's pin-count
+    // badge (positioned at `top: -5px` of the dotWrap) clearance —
+    // otherwise trackWrap's `overflow-y: auto` clips half of it.
     trackInner.style.cssText = [
       'position: relative',
       'display: flex',
@@ -543,7 +546,7 @@ export class TimelineV2 {
       'align-items: center',
       'width: 100%',
       'gap: 6px',
-      'padding: 2px 0',
+      'padding: 10px 0',
     ].join('; ');
     trackWrap.appendChild(trackInner);
 
