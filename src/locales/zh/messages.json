@@ -341,6 +341,33 @@
   "sidebarWidthWide": {
     "message": "宽"
   },
+  "chatFontFamily": {
+    "message": "聊天字体"
+  },
+  "chatFontFamilyDefault": {
+    "message": "默认（Claude）"
+  },
+  "chatFontFamilyGemini": {
+    "message": "Gemini 风格（Google Sans）"
+  },
+  "chatFontFamilyGpt": {
+    "message": "ChatGPT 风格（Söhne）"
+  },
+  "chatFontFamilyCustom": {
+    "message": "自定义"
+  },
+  "chatFontFamilyNoneImported": {
+    "message": "未导入"
+  },
+  "chatFontFamilyHint": {
+    "message": "预设字体若本机未安装会回退到系统字体。下方可导入 .woff2/.woff/.ttf/.otf 文件以保证渲染。"
+  },
+  "chatFontFamilyImport": {
+    "message": "导入字体…"
+  },
+  "chatFontFamilyClear": {
+    "message": "清除自定义字体"
+  },
   "formula_copied": {
     "message": "公式已复制。"
   },

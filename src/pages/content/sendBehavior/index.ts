@@ -32,6 +32,8 @@ import { getTextOffset, setCaretPosition } from './utils';
 
 /** Selectors for finding the send button */
 const SEND_BUTTON_SELECTORS = [
+  // Claude.ai — exact aria label (probed live: button[aria-label="Send message"])
+  'button[aria-label="Send message"]',
   'button[data-testid="send-button"]',
   '.update-button', // Explicit class for Edit mode (User provided)
   'button[aria-label*="Send"]',
@@ -84,6 +86,10 @@ function findSendButton(inputElement: HTMLElement): HTMLElement | null {
   // 1. First, find a cohesive container wrapper that holds BOTH the input and its corresponding button
   //    ChatGPT provides distinct containers for the main input and edit inputs
   const containerSelectors = [
+    // Claude.ai composer — the ProseMirror editor is wrapped in <fieldset>.
+    // <form> also works but `fieldset` is more specific and avoids matching
+    // unrelated forms (e.g. settings dialogs).
+    'fieldset',
     // ChatGPT composer
     '[data-testid="composer"]',
     'form[data-type="unified-composer"]',
@@ -260,6 +266,7 @@ function handleKeyDown(event: KeyboardEvent): void {
       if (sendButton) {
         event.preventDefault();
         event.stopPropagation();
+        event.stopImmediatePropagation();
         sendButton.click();
       }
       return;
@@ -268,9 +275,17 @@ function handleKeyDown(event: KeyboardEvent): void {
     // Shift+Enter: Default behavior (already inserts newline in most cases)
     if (event.shiftKey) return;
 
-    // Plain Enter: Insert a newline instead of sending
+    // Plain Enter: Insert a newline instead of sending.
+    //
+    // `stopImmediatePropagation` is required (not just `stopPropagation`)
+    // because Claude's composer is a Tiptap/ProseMirror editor whose own
+    // "Enter sends message" handler is attached to the SAME element as
+    // ours.  `stopPropagation` only blocks ancestor listeners; it lets
+    // other same-element listeners keep firing.  Without this the Enter
+    // key still sent the message even after we called preventDefault.
     event.preventDefault();
     event.stopPropagation();
+    event.stopImmediatePropagation();
 
     if (isContentEditable) {
       insertNewlineInContentEditable(target);
@@ -292,6 +307,7 @@ function handleKeyDown(event: KeyboardEvent): void {
     if (sendButton) {
       event.preventDefault();
       event.stopPropagation();
+      event.stopImmediatePropagation();
       sendButton.click();
     }
   }
@@ -301,30 +317,53 @@ function handleKeyDown(event: KeyboardEvent): void {
 // Attachment Logic
 // ============================================================================
 
+let documentListenerAttached = false;
+
 /**
- * Attach event listener to an input element
+ * Document-level capture handler.  Filters events whose target is an
+ * editable input area and delegates to handleKeyDown.
+ *
+ * We attach at document (not per-element) because Claude's composer is a
+ * Tiptap/ProseMirror editor whose own keymap fires from listeners on the
+ * SAME element as ours.  Per-element capture listeners are ordered by
+ * registration time on that element, so attaching first isn't guaranteed.
+ * A document-level capture listener is ALWAYS reached before any
+ * element-level listener (capture flows window → document → ... → target).
+ * Calling stopPropagation here halts the capture, so the composer's own
+ * keymap never sees the event.
  */
-function attachToInput(element: HTMLElement): void {
-  // Prevent duplicate listeners
-  if (attachedElements.has(element)) return;
-
-  // Use capture phase to intercept before other handlers
-  element.addEventListener('keydown', handleKeyDown, { capture: true });
-
-  attachedElements.add(element);
-
-  cleanupFns.push(() => {
-    element.removeEventListener('keydown', handleKeyDown, { capture: true });
-    attachedElements.delete(element);
-  });
+function documentKeyDownCapture(event: Event): void {
+  if (!(event instanceof KeyboardEvent)) return;
+  if (event.key !== 'Enter') return;
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  // Same filter as the per-element listener used to apply.
+  const isContentEditable =
+    target.isContentEditable || target.getAttribute('contenteditable') === 'true';
+  const isTextarea = target.tagName === 'TEXTAREA';
+  if (!isContentEditable && !isTextarea) return;
+  handleKeyDown(event);
 }
 
 /**
- * Find and attach to all input areas on the page
+ * Attach event listener at the document level (capture phase).
+ *
+ * `attachedElements` and `attachToInput` are kept for legacy callers but
+ * the only active listener is the single document-level one.
  */
+function attachToInput(_element: HTMLElement): void {
+  // Intentional no-op: document-level capture handles all inputs.
+}
+
 function attachToAllInputs(): void {
-  const editables = document.querySelectorAll<HTMLElement>(EDITABLE_SELECTORS);
-  editables.forEach(attachToInput);
+  if (documentListenerAttached) return;
+  window.addEventListener('keydown', documentKeyDownCapture, { capture: true });
+  documentListenerAttached = true;
+  // NOTE: do NOT push to `cleanupFns` — that array is drained on
+  // deactivateListeners() when both modes are toggled off, but the
+  // document listener must outlive feature toggles to keep its early
+  // registration position (vs Claude's React).  It's torn down only in
+  // the module-level cleanup().
 }
 
 // ============================================================================
@@ -391,12 +430,17 @@ function shouldBeActive(): boolean {
 /**
  * Activate listeners: attach to inputs and start observing.
  * Called when transitioning from no active modes to at least one active mode.
+ *
+ * The document-level keydown listener is attached eagerly in
+ * startSendBehavior (independent of feature flags) so it wins the
+ * registration-order race against Claude's React app.  Here we only
+ * need to spin up the legacy MutationObserver (kept for compatibility
+ * with non-Claude sites where per-element listeners might still help).
  */
 function activateListeners(): void {
   if (isListenersActive) return;
 
   isListenersActive = true;
-  attachToAllInputs();
   setupObserver();
 
   console.log(LOG_PREFIX, 'Listeners activated');
@@ -513,6 +557,17 @@ function cleanup(): void {
   isSafariEnterFixEnabled = false;
   deactivateListeners();
 
+  // Tear down the persistent document-level keydown listener (it survives
+  // feature toggles but should not survive module unload).
+  if (documentListenerAttached) {
+    try {
+      window.removeEventListener('keydown', documentKeyDownCapture, { capture: true });
+    } catch {
+      /* ignore */
+    }
+    documentListenerAttached = false;
+  }
+
   if (storageListener) {
     try {
       chrome.storage?.onChanged?.removeListener(storageListener);
@@ -531,18 +586,39 @@ function cleanup(): void {
 
 /**
  * Initialize the send behavior module
+ *
+ * Listener attachment strategy:
+ *   The document-level keydown listener is attached UNCONDITIONALLY at
+ *   bootstrap, BEFORE storage is read.  Claude.ai's React app registers
+ *   its own capture-phase keydown handler on `document` very early during
+ *   page hydration; if we wait for the async storage round-trip we lose
+ *   the registration-order race and our listener fires AFTER Claude's,
+ *   making `stopImmediatePropagation` arrive too late to suppress send.
+ *
+ *   The listener body still gates on `isCtrlEnterSendEnabled` /
+ *   `isSafariEnterFixEnabled` so it's a no-op when neither mode is on —
+ *   the bootstrap cost is a single addEventListener.
+ *
  * @returns A cleanup function to be called on unmount
  */
 export async function startSendBehavior(): Promise<() => void> {
-  // Always setup storage listener first (to respond to setting changes)
+  // Attach the keydown listener EAGERLY — before reading storage — so we
+  // win the registration-order race against Claude's React app on the
+  // shared `document` capture-phase channel.  See note above.
+  attachToAllInputs();
+
+  // Storage listener (to respond to setting changes).
   setupStorageListener();
 
-  // Load initial settings and activate if any mode is enabled
+  // Load initial settings.  reconcileListeners is now mostly cosmetic
+  // because the listener is already attached, but we keep the call so
+  // the legacy observer can spin up if a per-element attach is ever
+  // needed in the future.
   await loadSettings();
   reconcileListeners();
 
   if (!shouldBeActive()) {
-    console.log(LOG_PREFIX, 'All modes disabled, skipping initialization');
+    console.log(LOG_PREFIX, 'All modes disabled — listener attached but inert');
   }
 
   return cleanup;

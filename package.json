@@ -1,6 +1,6 @@
 {
   "name": "claude-voyager",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A GPL-3.0 browser extension workbench for Claude.ai: timeline navigation, text pins, folders, favorites, prompt vault, and one-click conversation export.",
   "license": "GPL-3.0",
   "author": "TanChuping",
@@ -18,6 +18,7 @@
     "build:all": "bun run build:chrome && bun run build:firefox && bun run build:safari",
     "pack:webstore": "bun run build:chrome && node scripts/pack-webstore.cjs",
     "pack:firefox": "bun run build:firefox && node scripts/pack-firefox.cjs",
+    "pack:source": "node scripts/pack-source.cjs",
     "dev": "nodemon --config nodemon.chrome.json",
     "dev:chrome": "nodemon --config nodemon.chrome.json",
     "dev:chrome-open": "bun scripts/launch-chrome.cjs",

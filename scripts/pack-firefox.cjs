@@ -28,7 +28,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const JSZip = require('jszip');
 
 const repoRoot = path.resolve(__dirname, '..');
 const dist = path.join(repoRoot, 'dist_firefox');
@@ -68,36 +68,39 @@ console.log(`[pack-firefox] manifest 'key' field: ${hadKey ? 'stripped' : 'absen
 const xpiPath = path.join(repoRoot, `claude-voyager-${version}-firefox.xpi`);
 if (fs.existsSync(xpiPath)) fs.rmSync(xpiPath);
 
-const isWin = process.platform === 'win32';
-let res;
-if (isWin) {
-  // PowerShell's Compress-Archive only accepts .zip destinations, so we
-  // zip to a temp .zip path then rename to .xpi (same bytes, the rename
-  // is purely cosmetic for Firefox's file-pickers).
-  // Compress-Archive insists on the literal `.zip` extension, so we
-  // stage at a plain .zip path and rename afterwards.
-  const tmpZip = xpiPath.replace(/\.xpi$/, '.firefox-stage.zip');
-  if (fs.existsSync(tmpZip)) fs.rmSync(tmpZip);
-  res = spawnSync(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-Command',
-      `Compress-Archive -Path '${stage}\\*' -DestinationPath '${tmpZip}' -Force`,
-    ],
-    { stdio: 'inherit' },
-  );
-  if (res.status === 0) fs.renameSync(tmpZip, xpiPath);
-} else {
-  res = spawnSync('zip', ['-r', xpiPath, '.'], { stdio: 'inherit', cwd: stage });
+// Walk the stage and build the archive in-memory.  Using JSZip — not the
+// platform `zip` / Compress-Archive — guarantees forward-slash entry names
+// inside the archive regardless of OS.  AMO's validator rejects entries
+// like `assets\foo.js` (which PowerShell's Compress-Archive emits on
+// Windows), so this matters even when the produced file installs fine.
+const zip = new JSZip();
+function addDir(absDir, relDir) {
+  for (const entry of fs.readdirSync(absDir, { withFileTypes: true })) {
+    const abs = path.join(absDir, entry.name);
+    const rel = relDir ? `${relDir}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      addDir(abs, rel);
+    } else {
+      zip.file(rel, fs.readFileSync(abs));
+    }
+  }
 }
-if (res.status !== 0) {
-  console.error(`[pack-firefox] zip failed (status ${res.status})`);
-  process.exit(res.status ?? 1);
-}
+addDir(stage, '');
 
-fs.rmSync(stage, { recursive: true, force: true });
+(async () => {
+  const buf = await zip.generateAsync({
+    type: 'nodebuffer',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 9 },
+  });
+  fs.writeFileSync(xpiPath, buf);
 
-const sizeKb = Math.round(fs.statSync(xpiPath).size / 1024);
-console.log(`[pack-firefox] ✓ ${path.basename(xpiPath)} (${sizeKb} KB)`);
-console.log(`[pack-firefox] Linux install: about:debugging → "This Firefox" → "Load Temporary Add-on" → pick the xpi.`);
+  fs.rmSync(stage, { recursive: true, force: true });
+
+  const sizeKb = Math.round(fs.statSync(xpiPath).size / 1024);
+  console.log(`[pack-firefox] ✓ ${path.basename(xpiPath)} (${sizeKb} KB)`);
+  console.log(`[pack-firefox] Linux install: about:debugging → "This Firefox" → "Load Temporary Add-on" → pick the xpi.`);
+})().catch((err) => {
+  console.error('[pack-firefox] zip failed:', err);
+  process.exit(1);
+});

@@ -39,8 +39,8 @@ export async function startPreventAutoScroll(): Promise<void> {
     // Check if feature is enabled, default to true or false?
     // Probably default to true since it's a helpful feature, but typically
     // we let user turn it on/off in popup.
-    const result = await chrome.storage?.sync?.get({ gvPreventAutoScrollEnabled: false });
-    const isEnabled = result?.gvPreventAutoScrollEnabled !== false; // wait, if default is false, then !== false is true...
+    const result = await chrome.storage?.sync?.get({ cvPreventAutoScrollEnabled: false });
+    const isEnabled = result?.cvPreventAutoScrollEnabled !== false; // wait, if default is false, then !== false is true...
     // Let's set default to false for new feature to not surprise users unless they turn it on.
 
     // Ah, wait. Usually settings default to false or true.
@@ -48,15 +48,15 @@ export async function startPreventAutoScroll(): Promise<void> {
     // The user requested: "I hope we can have a feature to prevent jump". Let's make it default false to be safe.
 
     // Wait, let's fix the logic:
-    // const isEnabled = result?.gvPreventAutoScrollEnabled === true;
+    // const isEnabled = result?.cvPreventAutoScrollEnabled === true;
 
-    notifyScript(result?.gvPreventAutoScrollEnabled === true);
+    notifyScript(result?.cvPreventAutoScrollEnabled === true);
     injectScript();
 
     // Listen for storage changes to update the bridge dynamically
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === 'sync' && changes.gvPreventAutoScrollEnabled) {
-        notifyScript(changes.gvPreventAutoScrollEnabled.newValue === true);
+      if (area === 'sync' && changes.cvPreventAutoScrollEnabled) {
+        notifyScript(changes.cvPreventAutoScrollEnabled.newValue === true);
       }
     });
 

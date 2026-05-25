@@ -17,7 +17,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+const JSZip = require('jszip');
 
 const repoRoot = path.resolve(__dirname, '..');
 const dist = path.join(repoRoot, 'dist_chrome');
@@ -57,36 +57,42 @@ delete manifest.key;
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), { encoding: 'utf8' });
 console.log(`[pack-webstore] manifest 'key' field: ${hadKey ? 'stripped' : 'absent (ok)'}`);
 
-// 5. Zip — use PowerShell's Compress-Archive on Windows, `zip` elsewhere
+// 5. Zip via JSZip — guarantees forward-slash entry names on every OS.
+//    PowerShell's Compress-Archive emits backslashes inside the archive
+//    on Windows, which violates the ZIP spec and fails AMO validation.
+//    Chrome Web Store has historically been lenient, but no reason to
+//    ship a non-conformant archive.
 const zipPath = path.join(repoRoot, `claude-voyager-${version}.zip`);
 if (fs.existsSync(zipPath)) fs.rmSync(zipPath);
 
-const isWin = process.platform === 'win32';
-let res;
-if (isWin) {
-  // Compress-Archive happily takes a wildcard path so we get the zip
-  // CONTENTS (not a wrapping folder) — Web Store expects manifest.json
-  // at the zip root.
-  res = spawnSync(
-    'powershell.exe',
-    [
-      '-NoProfile',
-      '-Command',
-      `Compress-Archive -Path '${stage}\\*' -DestinationPath '${zipPath}' -Force`,
-    ],
-    { stdio: 'inherit' },
-  );
-} else {
-  // `cd stage && zip -r ../claude-voyager-X.zip .` keeps manifest at root.
-  res = spawnSync('zip', ['-r', zipPath, '.'], { stdio: 'inherit', cwd: stage });
+const zip = new JSZip();
+function addDir(absDir, relDir) {
+  for (const entry of fs.readdirSync(absDir, { withFileTypes: true })) {
+    const abs = path.join(absDir, entry.name);
+    const rel = relDir ? `${relDir}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      addDir(abs, rel);
+    } else {
+      zip.file(rel, fs.readFileSync(abs));
+    }
+  }
 }
-if (res.status !== 0) {
-  console.error(`[pack-webstore] zip failed (status ${res.status})`);
-  process.exit(res.status ?? 1);
-}
+addDir(stage, '');
 
-// 6. Clean stage
-fs.rmSync(stage, { recursive: true, force: true });
+(async () => {
+  const buf = await zip.generateAsync({
+    type: 'nodebuffer',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 9 },
+  });
+  fs.writeFileSync(zipPath, buf);
 
-const sizeKb = Math.round(fs.statSync(zipPath).size / 1024);
-console.log(`[pack-webstore] ✓ ${path.basename(zipPath)} (${sizeKb} KB) — ready for the Chrome Web Store.`);
+  // 6. Clean stage
+  fs.rmSync(stage, { recursive: true, force: true });
+
+  const sizeKb = Math.round(fs.statSync(zipPath).size / 1024);
+  console.log(`[pack-webstore] ✓ ${path.basename(zipPath)} (${sizeKb} KB) — ready for the Chrome Web Store.`);
+})().catch((err) => {
+  console.error('[pack-webstore] zip failed:', err);
+  process.exit(1);
+});

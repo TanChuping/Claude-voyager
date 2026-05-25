@@ -11,8 +11,24 @@
  */
 import katex from 'katex';
 
-/** Selector for user message text paragraph elements. */
-const USER_MSG_SELECTOR = 'p.query-text-line';
+/**
+ * Selector for Claude user-message paragraph elements.
+ *
+ * Claude already renders LaTeX in *assistant* messages via its own KaTeX
+ * pipeline, but user-typed messages render as plain `<p>` blocks — so
+ * "$E=mc^2$" shows up literally instead of as math.  This module fills
+ * that gap for user messages only.
+ *
+ * `[data-testid="user-message"] p` matches every paragraph inside the
+ * user message bubble (probed live on claude.ai).  We additionally skip
+ * any `<p>` that already contains a `.katex` subtree (rendered by a
+ * prior pass or by Claude itself) — see `processElement` below.
+ *
+ * Legacy ChatGPT/Gemini fallback `p.query-text-line` is also included so
+ * the same code keeps working if ever ported back, but on claude.ai it
+ * matches zero elements.
+ */
+const USER_MSG_SELECTOR = '[data-testid="user-message"] p, p.query-text-line';
 
 type Segment = { kind: 'text'; value: string } | { kind: 'math'; value: string; display: boolean };
 
@@ -142,6 +158,13 @@ export function parseSegments(text: string): Segment[] {
 function processElement(el: HTMLElement): void {
   if (el.dataset.userLatexProcessed) return;
 
+  // Skip if Claude (or a prior pass) already rendered KaTeX in this
+  // paragraph.  Re-rendering would duplicate spans and corrupt the layout.
+  if (el.querySelector('.katex')) {
+    el.dataset.userLatexProcessed = '1';
+    return;
+  }
+
   const raw = el.textContent ?? '';
 
   // Quick exit: no $ means no LaTeX
@@ -194,6 +217,108 @@ function processAll(): void {
 }
 
 let observer: MutationObserver | null = null;
+let copyInterceptorInstalled = false;
+
+/**
+ * Selector for Claude's per-message Copy button.  The same data-testid
+ * appears on every message's action toolbar (verified via browser-harness).
+ */
+const COPY_BUTTON_SELECTOR = 'button[data-testid="action-bar-copy"]';
+
+/**
+ * Collect the pre-render text of all paragraphs inside a user message,
+ * joined with newlines.  Each `<p>` may have:
+ *   - `dataset.userLatexOriginal`  → set by `processElement` after we
+ *     replaced the raw "$...$" text with rendered KaTeX HTML.  Use this.
+ *   - no dataset flag              → either we skipped it (no LaTeX) or
+ *     we haven't processed it yet.  Fall back to live textContent.
+ */
+function collectOriginalUserText(userMsg: HTMLElement): string {
+  const paragraphs = Array.from(userMsg.querySelectorAll('p'));
+  if (paragraphs.length === 0) {
+    return userMsg.textContent ?? '';
+  }
+  return paragraphs
+    .map((p) => p.dataset.userLatexOriginal ?? p.textContent ?? '')
+    .join('\n')
+    .trimEnd();
+}
+
+/**
+ * Walk up from the Copy button until we find an ancestor that also
+ * contains a `[data-testid="user-message"]` bubble — that's the turn
+ * this Copy button belongs to.  Returns null when the Copy is on an
+ * assistant message (no user-message bubble in the same subtree).
+ */
+function findUserMessageForCopyButton(copyBtn: Element): HTMLElement | null {
+  let ancestor: Element | null = copyBtn.parentElement;
+  while (ancestor && ancestor !== document.body) {
+    const candidate = ancestor.querySelector<HTMLElement>('[data-testid="user-message"]');
+    if (candidate) return candidate;
+    ancestor = ancestor.parentElement;
+  }
+  return null;
+}
+
+/**
+ * Intercept clicks on Claude's per-message Copy button so user messages
+ * we've LaTeX-processed copy the ORIGINAL `$...$` source instead of the
+ * rendered KaTeX (whose flattened textContent reads like "E=mc2" — the
+ * "^" superscript collapses, the `$` delimiters vanish, the user gets
+ * unusable garbage when they paste).
+ *
+ * Listener is installed at `document` in capture phase so we fire before
+ * any element-level handler Claude attached to the button (same reasoning
+ * as sendBehavior — capture phase + early registration wins the race).
+ * `stopImmediatePropagation` then halts the event so Claude's own copy
+ * handler never runs and can't overwrite our clipboard write.
+ *
+ * Pass-through cases (we do nothing, Claude's native copy proceeds):
+ *   - Copy on assistant messages
+ *   - Copy on user messages we haven't processed (no `$...$` content)
+ */
+function installCopyInterceptor(): void {
+  if (copyInterceptorInstalled) return;
+
+  // Single handler bound to multiple event names.  Bind on the FULL
+  // pointer/click sequence (pointerdown → mousedown → click) so:
+  //   1. If Claude's copy fires on pointerdown (some libraries do this
+  //      to avoid 300ms tap delay), we still get there first.
+  //   2. If Claude's copy fires on click, our pointerdown write happens
+  //      first AND our click write reinforces it.
+  // navigator.clipboard.writeText is idempotent — writing the same text
+  // twice from us is harmless; the only race risk is Claude's write
+  // landing AFTER ours, which can't happen if we intercept the entire
+  // sequence with `stopImmediatePropagation`.
+  const handle = (event: Event): void => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const copyBtn = target.closest(COPY_BUTTON_SELECTOR);
+    if (!copyBtn) return;
+
+    const userMsg = findUserMessageForCopyButton(copyBtn);
+    if (!userMsg) return; // assistant message — leave Claude's copy alone
+
+    const hasProcessed = userMsg.querySelector('p[data-user-latex-original]');
+    if (!hasProcessed) return; // we didn't render this — textContent is fine
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    const text = collectOriginalUserText(userMsg);
+    if (!text) return;
+
+    void navigator.clipboard.writeText(text).catch((err) => {
+      console.warn('[Claude-Voyager] user-latex copy override failed:', err);
+    });
+  };
+
+  for (const evtName of ['pointerdown', 'mousedown', 'click'] as const) {
+    document.addEventListener(evtName, handle, { capture: true });
+  }
+  copyInterceptorInstalled = true;
+}
 
 /**
  * Start rendering LaTeX in user messages.
@@ -202,6 +327,10 @@ let observer: MutationObserver | null = null;
 export function startUserLatex(): void {
   // Process messages already on the page
   processAll();
+
+  // Install the Copy-button override regardless of whether anything has
+  // been processed yet — messages render after the script boots.
+  installCopyInterceptor();
 
   if (observer) return;
 

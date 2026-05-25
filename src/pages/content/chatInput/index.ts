@@ -1,4 +1,9 @@
 const CHAT_INPUT_SELECTORS = [
+  // Claude.ai composer — Tiptap/ProseMirror editor inside the bottom fieldset.
+  // No role="textbox" (unlike ChatGPT's Quill), so it has to be matched
+  // explicitly here or every "insert into chat" feature silently no-ops.
+  '.ProseMirror[contenteditable="true"]',
+  'fieldset .ProseMirror',
   'rich-textarea [contenteditable="true"]',
   'div[contenteditable="true"][role="textbox"]',
   '.input-area textarea',

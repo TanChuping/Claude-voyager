@@ -171,7 +171,13 @@ function getInputContainer(): HTMLElement | null {
   // Safety check for test environments and edge cases
   if (typeof document === 'undefined') return null;
 
+  // Probe order: Claude first (most specific), then ChatGPT/Gemini fallbacks.
+  // Claude's composer is a Tiptap/ProseMirror contenteditable inside a
+  // <fieldset>; the prior ChatGPT-only selectors silently matched nothing
+  // here and the whole feature was a no-op.
   const textarea =
+    document.querySelector('fieldset .ProseMirror[contenteditable="true"]') ||
+    document.querySelector('.ProseMirror[contenteditable="true"]') ||
     document.querySelector('#prompt-textarea') ||
     document.querySelector('[data-testid="composer"] [contenteditable="true"]') ||
     document.querySelector('textarea') ||
@@ -258,15 +264,18 @@ export function collapseInput(): void {
  * Checks if the input is effectively empty.
  */
 function isInputEmpty(container: HTMLElement): boolean {
-  // Check the text content of the rich-textarea
+  // Claude composer first, then ChatGPT/Gemini fallbacks.
   const textarea =
+    container.querySelector('.ProseMirror[contenteditable="true"]') ||
     container.querySelector('rich-textarea') ||
     container.querySelector('textarea') ||
     container.querySelector('[contenteditable="true"]');
   if (!textarea) return true;
 
-  // Check for attachments. If attachments exist, the input is not considered empty.
+  // Check for attachments. Claude exposes them via testids like
+  // "file-thumbnail" + per-filename data-testid attributes.
   const attachmentsArea =
+    container.querySelector('[data-testid="file-thumbnail"]') ||
     container.querySelector('uploader-file-preview') ||
     container.querySelector('.file-preview-wrapper');
   if (attachmentsArea) return false;

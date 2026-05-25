@@ -41,20 +41,30 @@ function normalizeWidth(value: number): { normalized: number; unit: 'px' | 'perc
 function buildStyle(widthValue: number): string {
   const { normalized, unit } = normalizeWidth(widthValue);
 
-  const clampedWidth = unit === 'px' ? `${normalized}px` : `clamp(200px, ${normalized}vw, 800px)`; // preserve vw behavior for legacy %
+  const clampedWidth = unit === 'px' ? `${normalized}px` : `clamp(200px, ${normalized}vw, 800px)`;
 
+  // Claude.ai's sidebar is the <nav aria-label="Sidebar"> with an inline
+  // `style="width: 18rem"`.  Its parent `<div class="fixed lg:sticky
+  // z-sidebar">` carries the same inline width.  Both need overriding to
+  // change the visible column width.  Tailwind compiles `lg:sticky` to a
+  // class name with a backslash-escaped colon (`.lg\:sticky`).
+  //
+  // The Gemini `--sidebar-width` CSS variable rule is kept as a no-op on
+  // Claude (cheap defensive coupling for any future Claude variant that
+  // adopts the variable pattern).
   return `
+    /* Claude — main sidebar nav + its fixed/sticky outer wrapper */
+    nav[aria-label="Sidebar"],
+    div.fixed.lg\\:sticky.z-sidebar,
+    div.fixed.z-sidebar {
+      width: ${clampedWidth} !important;
+      max-width: ${clampedWidth} !important;
+      min-width: 0 !important;
+      flex-basis: ${clampedWidth} !important;
+    }
+
+    /* Legacy / variable-based fallback for Gemini-like layouts */
     :root {
-      --sidebar-width: ${clampedWidth} !important;
-    }
-
-    #stage-slideover-sidebar,
-    [id*='sidebar' i] {
-      --sidebar-width: ${clampedWidth} !important;
-    }
-
-    #stage-slideover-sidebar [style*='--sidebar-width'],
-    [id*='sidebar' i] [style*='--sidebar-width'] {
       --sidebar-width: ${clampedWidth} !important;
     }
   `;
@@ -138,45 +148,32 @@ function setupSearchButtonHitTestDebug(): void {
 
 const ENABLED_KEY = 'cvSidebarWidthEnabled';
 
-/** Initialize and start the sidebar width adjuster */
+/** Initialize and start the sidebar width adjuster.
+ *
+ * The popup exposes no enable/disable toggle for sidebar width (only the
+ * slider) so this adjuster is **always active**: the user's stored value
+ * (or the default) is applied on every page load.  The legacy
+ * `cvSidebarWidthEnabled` key is read but is no longer authoritative —
+ * setting it to false would simply repaint with the default width.
+ */
 export function startSidebarWidthAdjuster(): void {
   let currentWidthValue = DEFAULT_PX;
-  let enabled = false;
   setupSearchButtonHitTestDebug();
 
-  // 1) Read initial state 鈥?request keys without defaults so we can distinguish
-  // "key never existed" (upgrade) from "explicitly set to false"
+  // 1) Read initial state and apply unconditionally.
   try {
     chrome.storage?.sync?.get(['claudeSidebarWidth', ENABLED_KEY], (res) => {
-      const rawW = res?.gptSidebarWidth;
+      const rawW = res?.claudeSidebarWidth;
       const w = Number.isFinite(Number(rawW)) ? Number(rawW) : DEFAULT_PX;
       const { normalized } = normalizeWidth(w);
       currentWidthValue = normalized;
-
-      const enabledRaw = res?.[ENABLED_KEY];
-      if (enabledRaw === undefined) {
-        // Upgrade path: auto-enable if user had previously customized
-        const isCustomized =
-          rawW !== undefined && normalizeWidth(Number(rawW)).normalized !== DEFAULT_PX;
-        enabled = isCustomized;
-        if (enabled) {
-          try {
-            chrome.storage?.sync?.set({ [ENABLED_KEY]: true });
-          } catch {}
-        }
-      } else {
-        enabled = enabledRaw === true;
-      }
-
-      if (enabled) {
-        applyWidth(currentWidthValue);
-      }
+      applyWidth(currentWidthValue);
 
       if (Number.isFinite(w) && w !== normalized) {
         try {
-          chrome.storage?.sync?.set({ gptSidebarWidth: normalized });
+          chrome.storage?.sync?.set({ claudeSidebarWidth: normalized });
         } catch (err) {
-          console.warn('[Claude-Voyager] Failed to migrate sidebar width to %:', err);
+          console.warn('[Claude-Voyager] Failed to migrate sidebar width:', err);
         }
       }
     });
@@ -184,34 +181,23 @@ export function startSidebarWidthAdjuster(): void {
     console.error('[Claude-Voyager] Failed to get sidebar width from storage:', e);
   }
 
-  // 2) Respond to storage changes (from Popup slider adjustment)
+  // 2) Respond to storage changes (from Popup slider adjustment).
   try {
     chrome.storage?.onChanged?.addListener((changes, area) => {
       if (area !== 'sync') return;
 
-      if (changes[ENABLED_KEY]) {
-        enabled = changes[ENABLED_KEY].newValue === true;
-        if (enabled) {
-          applyWidth(currentWidthValue);
-        } else {
-          removeStyles();
-        }
-      }
-
-      if (changes.gptSidebarWidth) {
-        const w = Number(changes.gptSidebarWidth.newValue);
+      if (changes.claudeSidebarWidth) {
+        const w = Number(changes.claudeSidebarWidth.newValue);
         if (Number.isFinite(w)) {
           const { normalized } = normalizeWidth(w);
           currentWidthValue = normalized;
-          if (enabled) {
-            applyWidth(currentWidthValue);
-          }
+          applyWidth(currentWidthValue);
 
           if (normalized !== w) {
             try {
-              chrome.storage?.sync?.set({ gptSidebarWidth: normalized });
+              chrome.storage?.sync?.set({ claudeSidebarWidth: normalized });
             } catch (err) {
-              console.warn('[Claude-Voyager] Failed to migrate sidebar width to % on change:', err);
+              console.warn('[Claude-Voyager] Failed to normalize sidebar width:', err);
             }
           }
         }

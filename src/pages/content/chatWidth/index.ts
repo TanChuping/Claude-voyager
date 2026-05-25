@@ -1,55 +1,28 @@
 /**
- * Adjusts the chat area width based on user settings (stored as viewport %)
+ * Adjusts the chat message column width on claude.ai based on user
+ * settings (stored as a viewport percentage in `claudeChatWidth`).
+ *
+ * Claude's column is constructed from two nested Tailwind `max-w-3xl`
+ * divs (verified by browser-harness):
+ *   - OUTER:  div.max-w-3xl.mx-auto.flex.w-full.flex-1.flex-col.md\:px-2
+ *             — wraps both the message scroll-area AND the sticky composer.
+ *   - INNER:  div.max-w-3xl.mx-auto.w-full.px-4.pt-1
+ *             — the message column proper (sits inside the scroll-area).
+ *
+ * Strategy: lift the OUTER `max-w-3xl` cap entirely (otherwise expanding
+ * the inner does nothing), then set the INNER to the user's percent.  The
+ * composer has its own width adjuster (editInputWidth) that pins the
+ * sticky-bottom composer wrapper, so the two settings stay independent.
  */
 
-const STYLE_ID = 'gpt-voyager-chat-width';
+const STYLE_ID = 'cv-chat-width';
 const DEFAULT_PERCENT = 70;
 const MIN_PERCENT = 30;
 const MAX_PERCENT = 100;
 const LEGACY_BASELINE_PX = 1200;
 
-// Selectors based on the export functionality that already works
-function getUserSelectors(): string[] {
-  return [
-    '[data-message-author-role="user"]',
-    'article[data-testid^="conversation-turn-"]:has([data-message-author-role="user"])',
-    '.user-query-bubble-container',
-    '.user-query-container',
-    'user-query-content',
-    'user-query',
-    'div[aria-label="User message"]',
-    'article[data-author="user"]',
-  ];
-}
-
-function getAssistantSelectors(): string[] {
-  return [
-    '[data-message-author-role="assistant"]',
-    'article[data-testid^="conversation-turn-"]:has([data-message-author-role="assistant"])',
-    '.markdown',
-    'model-response',
-    '.model-response',
-    'response-container',
-    '.response-container',
-    '.presented-response-container',
-    '[data-message-author-role="model"]',
-    'article[data-author="assistant"]',
-  ];
-}
-
-function getTableSelectors(): string[] {
-  return [
-    'table-block',
-    '.table-block',
-    'table-block .table-block',
-    'table-block .table-content',
-    '.table-block.new-table-style',
-    '.table-block.has-scrollbar',
-    '.table-block .table-content',
-    '.table-block-component',
-    '.horizontal-scroll-wrapper',
-  ];
-}
+const VALUE_KEY = 'claudeChatWidth';
+const ENABLED_KEY = 'cvChatWidthEnabled';
 
 const clampPercent = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, Math.round(value)));
@@ -64,13 +37,8 @@ const normalizePercent = (value: number, fallback: number) => {
 };
 
 function applyWidth(widthPercent: number) {
-  const normalizedPercent = normalizePercent(widthPercent, DEFAULT_PERCENT);
-  // Use screen width as reference to compute pixel-based max-width.
-  // This provides adaptive behavior for split-screen / narrow windows:
-  // - Fullscreen: width 鈮?percent% of screen (as intended by the slider)
-  // - Split-screen: content fills available space since pixel max-width > viewport
-  const screenWidth = screen.availWidth || screen.width || 1920;
-  const widthValue = `${Math.round((normalizedPercent / 100) * screenWidth)}px`;
+  const normalized = normalizePercent(widthPercent, DEFAULT_PERCENT);
+  const widthValue = `${normalized}vw`;
 
   let style = document.getElementById(STYLE_ID) as HTMLStyleElement;
   if (!style) {
@@ -79,157 +47,38 @@ function applyWidth(widthPercent: number) {
     document.head.appendChild(style);
   }
 
-  const userSelectors = getUserSelectors();
-  const assistantSelectors = getAssistantSelectors();
-  const tableSelectors = getTableSelectors();
-
-  // Build comprehensive CSS rules
-  const userRules = userSelectors.map((sel) => `${sel}`).join(',\n    ');
-  const assistantRules = assistantSelectors.map((sel) => `${sel}`).join(',\n    ');
-  const tableRules = tableSelectors.map((sel) => `${sel}`).join(',\n    ');
-
-  // A small gap to account for scrollbars
-  const GAP_PX = 10;
-
   style.textContent = `
-    /* ChatGPT current thread containers */
-    [class*="--thread-content-max-width"],
-    [class*="group/turn-messages"] {
-      --thread-content-max-width: ${widthValue} !important;
+    /*
+     * Lift the OUTER max-w-3xl cap (the one with md:px-2) so the inner
+     * column has room to expand.  Without this, setting max-width on the
+     * inner column does nothing because the outer is already clamped to
+     * 768px (max-w-3xl).
+     */
+    div.max-w-3xl.mx-auto.flex.w-full.flex-1.flex-col.md\\:px-2,
+    div.max-w-3xl.md\\:px-2 {
+      max-width: 100vw !important;
+    }
+
+    /*
+     * The message column proper.  Recognizable by the .px-4.pt-1 combo
+     * which is unique to it (the composer wrappers don't have pt-1).
+     */
+    div.max-w-3xl.mx-auto.w-full.px-4.pt-1,
+    div.max-w-3xl.px-4.pt-1 {
       max-width: ${widthValue} !important;
       width: min(100%, ${widthValue}) !important;
     }
 
-    /* Remove width constraints from outer containers that contain conversations */
-    .content-wrapper:has(chat-window),
-    .main-content:has(chat-window),
-    .content-container:has(chat-window),
-    .content-container:has(.conversation-container) {
-      max-width: none !important;
-    }
-
-    /* Remove width constraints from main and conversation containers, but not buttons */
-    [role="main"]:has(chat-window),
-    [role="main"]:has(.conversation-container) {
-      max-width: none !important;
-    }
-
-    /* Target chat window and related containers; A small gap to account for scrollbars */
-    chat-window,
-    .chat-container,
-    chat-window-content,
-    .chat-history-scroll-container,
-    .chat-history,
-    .conversation-container {
-      max-width: none !important;
-      padding-right: ${GAP_PX}px !important;
-      box-sizing: border-box !important;
-    }
-
-    main > div:has(user-query),
-    main > div:has(model-response),
-    main > div:has(.conversation-container) {
-      max-width: none !important;
-      width: 100% !important;
-    }
-
-    /* Fallback for browsers without :has() support */
-    @supports not selector(:has(*)) {
-      .content-wrapper,
-      .main-content,
-      .content-container {
-        max-width: none !important;
+    /*
+     * Safety net: if Claude renames classes, target by structure —
+     * any max-w-3xl that contains a rendered turn.  Some browsers don't
+     * support :has() (Firefox <121); the explicit class selectors above
+     * cover those.
+     */
+    @supports selector(:has(*)) {
+      div.max-w-3xl:has([data-test-render-count]) {
+        max-width: ${widthValue} !important;
       }
-
-      main > div:not(:has(button)):not(.main-menu-button) {
-        max-width: none !important;
-        width: 100% !important;
-      }
-    }
-
-    /* User query containers */
-    ${userRules} {
-      max-width: ${widthValue} !important;
-      width: min(100%, ${widthValue}) !important;
-      margin-left: auto !important;
-      margin-right: auto !important;
-    }
-
-    /* Model response containers */
-    ${assistantRules} {
-      max-width: ${widthValue} !important;
-      width: min(100%, ${widthValue}) !important;
-      margin-left: auto !important;
-      margin-right: auto !important;
-    }
-
-    /* Table containers */
-    ${tableRules} {
-      max-width: ${widthValue} !important;
-      width: min(100%, ${widthValue}) !important;
-      margin-left: auto !important;
-      margin-right: auto !important;
-      box-sizing: border-box !important;
-    }
-
-    table-block .table-block,
-    .table-block.has-scrollbar,
-    .table-block.new-table-style {
-      overflow-x: hidden !important;
-    }
-
-    table-block .table-content,
-    .table-block .table-content {
-      width: 100% !important;
-      overflow-x: auto !important;
-    }
-
-    model-response:has(> .deferred-response-indicator),
-    .response-container:has(img[src*="sparkle"]), 
-    main > div:has(img[src*="sparkle"]) {
-      max-width: ${widthValue} !important;
-      width: min(100%, ${widthValue}) !important;
-      margin-left: auto !important;
-      margin-right: auto !important;
-    }
-
-    /* Additional deep targeting for nested elements */
-    user-query,
-    user-query > *,
-    user-query > * > *,
-    model-response,
-    model-response > *,
-    model-response > * > *,
-    response-container,
-    response-container > *,
-    response-container > * > * {
-      max-width: ${widthValue} !important;
-    }
-
-    /* Target specific internal containers that might have fixed widths */
-    .presented-response-container,
-    [data-message-author-role] {
-      max-width: ${widthValue} !important;
-    }
-
-    /* Extend input-container gradient to match chat width */
-    input-container {
-      max-width: none !important;
-      width: 100% !important;
-    }
-
-    input-container .input-area-container,
-    input-container input-area-v2 {
-      max-width: ${widthValue} !important;
-      width: min(100%, ${widthValue}) !important;
-      margin-left: auto !important;
-      margin-right: auto !important;
-    }
-
-    /* Specific fix for user bubble background to fit content but respect max-width */
-    .user-query-bubble-with-background {
-      max-width: ${widthValue} !important;
-      width: fit-content !important;
     }
   `;
 }
@@ -241,24 +90,21 @@ function removeStyles() {
   }
 }
 
-const ENABLED_KEY = 'cvChatWidthEnabled';
-
 export function startChatWidthAdjuster() {
   let currentWidthPercent = DEFAULT_PERCENT;
   let enabled = false;
 
-  // Load initial state 鈥?request keys without defaults so we can distinguish
-  // "key never existed" (upgrade) from "explicitly set to false"
-  chrome.storage?.sync?.get(['claudeChatWidth', ENABLED_KEY], (res) => {
-    const storedWidth = res?.gptChatWidth;
+  // Load initial state — request without defaults so we can distinguish
+  // "key never existed" (upgrade) from "explicitly set to false".
+  chrome.storage?.sync?.get([VALUE_KEY, ENABLED_KEY], (res) => {
+    const storedWidth = res?.[VALUE_KEY];
     const numericStoredWidth = typeof storedWidth === 'number' ? storedWidth : DEFAULT_PERCENT;
     const normalized = normalizePercent(numericStoredWidth, DEFAULT_PERCENT);
     currentWidthPercent = normalized;
 
     const enabledRaw = res?.[ENABLED_KEY];
     if (enabledRaw === undefined) {
-      // Upgrade path: enabled key was never set.
-      // Auto-enable if user had previously customized the width.
+      // Upgrade path: auto-enable if user had previously customized.
       enabled =
         typeof storedWidth === 'number' &&
         normalizePercent(storedWidth, DEFAULT_PERCENT) !== DEFAULT_PERCENT;
@@ -277,14 +123,14 @@ export function startChatWidthAdjuster() {
 
     if (typeof storedWidth === 'number' && storedWidth !== normalized) {
       try {
-        chrome.storage?.sync?.set({ gptChatWidth: normalized });
+        chrome.storage?.sync?.set({ [VALUE_KEY]: normalized });
       } catch (e) {
-        console.warn('[Claude-Voyager] Failed to migrate chat width to %:', e);
+        console.warn('[Claude-Voyager] Failed to migrate chat width:', e);
       }
     }
   });
 
-  // Listen for changes from storage
+  // Respond to slider changes from the popup.
   const storageChangeHandler = (
     changes: Record<string, chrome.storage.StorageChange>,
     area: string,
@@ -300,8 +146,8 @@ export function startChatWidthAdjuster() {
       }
     }
 
-    if (changes.gptChatWidth) {
-      const newWidth = changes.gptChatWidth.newValue;
+    if (changes[VALUE_KEY]) {
+      const newWidth = changes[VALUE_KEY].newValue;
       if (typeof newWidth === 'number') {
         const normalized = normalizePercent(newWidth, DEFAULT_PERCENT);
         currentWidthPercent = normalized;
@@ -311,9 +157,9 @@ export function startChatWidthAdjuster() {
 
         if (normalized !== newWidth) {
           try {
-            chrome.storage?.sync?.set({ gptChatWidth: normalized });
+            chrome.storage?.sync?.set({ [VALUE_KEY]: normalized });
           } catch (e) {
-            console.warn('[Claude-Voyager] Failed to migrate chat width to % on change:', e);
+            console.warn('[Claude-Voyager] Failed to normalize chat width on change:', e);
           }
         }
       }
@@ -322,8 +168,8 @@ export function startChatWidthAdjuster() {
 
   chrome.storage?.onChanged?.addListener(storageChangeHandler);
 
-  // Re-apply styles when DOM changes (for dynamic content)
-  // Use debouncing and cache the width to avoid storage reads
+  // Claude re-mounts the message scroll-area on conversation switches, so
+  // re-apply the styles on relevant DOM changes.
   let debounceTimer: number | null = null;
   const observer = new MutationObserver(() => {
     if (debounceTimer !== null) {
@@ -337,8 +183,7 @@ export function startChatWidthAdjuster() {
     }, 200);
   });
 
-  // Observe the main conversation area for changes
-  const main = document.querySelector('main');
+  const main = document.querySelector('main') || document.body;
   if (main) {
     observer.observe(main, {
       childList: true,
@@ -346,13 +191,11 @@ export function startChatWidthAdjuster() {
     });
   }
 
-  // Clean up on unload to prevent memory leaks
   window.addEventListener(
     'beforeunload',
     () => {
       observer.disconnect();
       removeStyles();
-      // Remove storage listener
       try {
         chrome.storage?.onChanged?.removeListener(storageChangeHandler);
       } catch (e) {

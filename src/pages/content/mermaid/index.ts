@@ -766,8 +766,8 @@ let observer: MutationObserver | null = null;
  */
 export const startMermaid = () => {
   // Check if Mermaid rendering is enabled in settings
-  chrome.storage?.sync?.get({ gvMermaidEnabled: true }, (result) => {
-    mermaidEnabled = result?.gvMermaidEnabled !== false;
+  chrome.storage?.sync?.get({ cvMermaidEnabled: true }, (result) => {
+    mermaidEnabled = result?.cvMermaidEnabled !== false;
 
     if (mermaidEnabled) {
       initializeMermaid();
@@ -778,8 +778,8 @@ export const startMermaid = () => {
 
   // Listen for setting changes
   chrome.storage?.onChanged?.addListener((changes, areaName) => {
-    if (areaName === 'sync' && changes.gvMermaidEnabled) {
-      mermaidEnabled = changes.gvMermaidEnabled.newValue !== false;
+    if (areaName === 'sync' && changes.cvMermaidEnabled) {
+      mermaidEnabled = changes.cvMermaidEnabled.newValue !== false;
       if (mermaidEnabled) {
         initializeMermaid();
         console.log('[Claude-Voyager] Mermaid rendering enabled');

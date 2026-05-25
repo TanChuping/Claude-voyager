@@ -63,6 +63,15 @@ export const StorageKeys = {
   CHAT_FONT_SIZE_ENABLED: 'cvChatFontSizeEnabled',
   CODE_FONT_SIZE: 'cvCodeFontSize',
   CODE_FONT_SIZE_ENABLED: 'cvCodeFontSizeEnabled',
+  // Font family (chat + composer).  Presets: 'default' | 'gemini' | 'gpt'
+  // | 'custom'.  Custom font binary lives in chrome.storage.local under
+  // CHAT_CUSTOM_FONT_DATA (woff2/woff/ttf/otf base64), since storage.sync
+  // has an 8 KB per-item limit.
+  CHAT_FONT_FAMILY: 'cvChatFontFamily',
+  CHAT_FONT_FAMILY_ENABLED: 'cvChatFontFamilyEnabled',
+  CHAT_CUSTOM_FONT_NAME: 'cvChatCustomFontName',
+  CHAT_CUSTOM_FONT_FORMAT: 'cvChatCustomFontFormat',
+  CHAT_CUSTOM_FONT_DATA: 'cvChatCustomFontData',
   EDIT_INPUT_WIDTH: 'claudeEditInputWidth',
   EDIT_INPUT_WIDTH_ENABLED: 'cvEditInputWidthEnabled',
   SIDEBAR_WIDTH: 'claudeSidebarWidth',

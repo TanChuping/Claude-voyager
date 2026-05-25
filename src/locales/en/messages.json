@@ -341,6 +341,33 @@
   "sidebarWidthWide": {
     "message": "Wide"
   },
+  "chatFontFamily": {
+    "message": "Chat font"
+  },
+  "chatFontFamilyDefault": {
+    "message": "Default (Claude)"
+  },
+  "chatFontFamilyGemini": {
+    "message": "Gemini-style (Google Sans)"
+  },
+  "chatFontFamilyGpt": {
+    "message": "ChatGPT-style (Söhne)"
+  },
+  "chatFontFamilyCustom": {
+    "message": "Custom"
+  },
+  "chatFontFamilyNoneImported": {
+    "message": "none imported"
+  },
+  "chatFontFamilyHint": {
+    "message": "Presets fall back to your system fonts if the original isn't installed. Import a .woff2/.woff/.ttf/.otf below for guaranteed rendering."
+  },
+  "chatFontFamilyImport": {
+    "message": "Import font…"
+  },
+  "chatFontFamilyClear": {
+    "message": "Clear custom font"
+  },
   "formula_copied": {
     "message": "Formula copied."
   },

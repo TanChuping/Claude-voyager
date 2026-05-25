@@ -9,6 +9,7 @@ import { initI18n } from '@/utils/i18n';
 import { startCanvasExport } from './canvasExport/index';
 import { startSingleConversationExport } from './conversationExport/index';
 import { startChatFontSizeAdjuster } from './chatFontSize/index';
+import { startChatFontFamilyAdjuster } from './chatFontFamily/index';
 import { startInputVimMode } from './chatInput/vimMode';
 import { startChatWidthAdjuster } from './chatWidth/index';
 import { startDraftSave } from './draftSave/index';
@@ -135,6 +136,7 @@ async function startChatGPTFeatures(): Promise<void> {
   await runFeatureStep('Folder Spacing Adjuster', () => startFolderSpacingAdjuster());
   await runFeatureStep('Chat Width Adjuster', () => startChatWidthAdjuster());
   await runFeatureStep('Chat Font Size Adjuster', () => startChatFontSizeAdjuster());
+  await runFeatureStep('Chat Font Family Adjuster', () => startChatFontFamilyAdjuster());
   await runFeatureStep('Edit Input Width Adjuster', () => startEditInputWidthAdjuster());
   await runFeatureStep('Sidebar Width Adjuster', () => startSidebarWidthAdjuster());
   await runFeatureStep('Sidebar Auto Hide', () => startSidebarAutoHide());
