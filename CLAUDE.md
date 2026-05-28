@@ -102,6 +102,34 @@ For content-script-world exceptions, attach via
 `cdp('Target.attachToTarget', targetId=..., flatten=True)` and re-enable
 Runtime in that session.
 
+### Rule 5: Tab hygiene — close old tabs as you go
+
+`new_tab(url)` opens a fresh Chrome tab every time. After a long debugging
+session you can easily end up with 20+ tabs across `chrome://extensions/`,
+`chrome-extension://<id>/popup`, multiple `claude.ai/new?incognito=` and
+old `claude.ai/chat/<uuid>` pages — each one runs the content script and
+holds React state. On the user's machine this slows the whole browser
+down to a crawl.
+
+Practice:
+- Before opening yet another tab for the same purpose (extension reload,
+  popup probe, fresh incognito chat), close the old one with
+  `close_tab(targetId)`.
+- Every ~5 tabs spawned, sweep with `list_tabs()` and close anything
+  that's no longer in active use — keep at most one `chrome://extensions/`,
+  one extension-page tab, and one Claude tab.
+- Never close the user's own tabs (any tab whose URL doesn't match a
+  pattern you opened). Filter by `claude.ai/new?incognito=` and
+  `chrome://` / `chrome-extension://` to stay safe.
+
+```python
+# After finishing a probe round, close stale tabs of your own.
+for tab in list_tabs():
+    url = tab.get('url', '')
+    if url.startswith('chrome://extensions') and tab['targetId'] != keep:
+        close_tab(tab['targetId'])
+```
+
 ---
 
 ## 🟧 Project conventions

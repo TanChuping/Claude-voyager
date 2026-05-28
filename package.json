@@ -1,6 +1,6 @@
 {
   "name": "claude-voyager",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A GPL-3.0 browser extension workbench for Claude.ai: timeline navigation, text pins, folders, favorites, prompt vault, and one-click conversation export.",
   "license": "GPL-3.0",
   "author": "TanChuping",

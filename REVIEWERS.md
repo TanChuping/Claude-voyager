@@ -1,11 +1,11 @@
-# Build instructions for AMO reviewers — Claude-Voyager v1.1.0 (Firefox)
+# Build instructions for AMO reviewers — Claude-Voyager v1.2.0 (Firefox)
 
 This document tells a Mozilla add-on reviewer exactly how to reproduce the
 submitted `.xpi` from the source code in this archive.
 
-Submitted artefact: **`claude-voyager-1.1.0-firefox.xpi`**
+Submitted artefact: **`claude-voyager-1.2.0-firefox.xpi`**
 Source repository: <https://github.com/TanChuping/Claude-voyager>
-Corresponding git tag: `v1.1.0`
+Corresponding git tag: `v1.2.0`
 
 ---
 
@@ -40,7 +40,7 @@ No global packages are required. All build dependencies are declared in
 
 ```bash
 # 1. Unzip the source archive, then cd into it.
-cd claude-voyager-1.1.0-source
+cd claude-voyager-1.2.0-source
 
 # 2. Install dependencies.
 bun install               # or: npm install
@@ -57,11 +57,11 @@ That single `pack:firefox` command runs:
    - strips the `key` field from `manifest.json` (used only for local
      unpacked-extension development to keep the Chrome extension ID stable
      across reloads — Firefox ignores it but AMO rejects it),
-   - zips the staged tree into `claude-voyager-1.1.0-firefox.xpi` using
+   - zips the staged tree into `claude-voyager-1.2.0-firefox.xpi` using
      `jszip` (pure-JS, forward-slash entry names — produces a spec-conformant
      archive on every OS).
 
-The resulting `claude-voyager-1.1.0-firefox.xpi` at the repo root matches
+The resulting `claude-voyager-1.2.0-firefox.xpi` at the repo root matches
 the submitted artefact (zip metadata timestamps may differ but file contents
 are byte-equivalent).
 

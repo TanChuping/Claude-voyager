@@ -28,6 +28,7 @@ import { startPreventAutoScroll } from './preventAutoScroll/index';
 import { startPromptManager } from './prompt/index';
 import { startQuoteReply } from './quoteReply/index';
 import { startSendBehavior } from './sendBehavior/index';
+import { startTempChatExit } from './tempChatExit/index';
 import { startSidebarAutoHide } from './sidebarAutoHide';
 import { startSidebarWidthAdjuster } from './sidebarWidth';
 // import { startTimeline } from './timeline/index';  // legacy GPT-Voyager timeline — superseded by V2
@@ -137,6 +138,7 @@ async function startChatGPTFeatures(): Promise<void> {
   await runFeatureStep('Chat Width Adjuster', () => startChatWidthAdjuster());
   await runFeatureStep('Chat Font Size Adjuster', () => startChatFontSizeAdjuster());
   await runFeatureStep('Chat Font Family Adjuster', () => startChatFontFamilyAdjuster());
+  await runFeatureStep('Temp Chat Exit', () => startTempChatExit(), 0);
   await runFeatureStep('Edit Input Width Adjuster', () => startEditInputWidthAdjuster());
   await runFeatureStep('Sidebar Width Adjuster', () => startSidebarWidthAdjuster());
   await runFeatureStep('Sidebar Auto Hide', () => startSidebarAutoHide());

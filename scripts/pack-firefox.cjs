@@ -65,7 +65,9 @@ delete manifest.key;
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), { encoding: 'utf8' });
 console.log(`[pack-firefox] manifest 'key' field: ${hadKey ? 'stripped' : 'absent (ok)'}`);
 
-const xpiPath = path.join(repoRoot, `claude-voyager-${version}-firefox.xpi`);
+const outDir = path.join(repoRoot, 'store_packages');
+fs.mkdirSync(outDir, { recursive: true });
+const xpiPath = path.join(outDir, `claude-voyager-${version}-firefox.xpi`);
 if (fs.existsSync(xpiPath)) fs.rmSync(xpiPath);
 
 // Walk the stage and build the archive in-memory.  Using JSZip — not the
@@ -98,7 +100,7 @@ addDir(stage, '');
   fs.rmSync(stage, { recursive: true, force: true });
 
   const sizeKb = Math.round(fs.statSync(xpiPath).size / 1024);
-  console.log(`[pack-firefox] ✓ ${path.basename(xpiPath)} (${sizeKb} KB)`);
+  console.log(`[pack-firefox] ✓ ${path.relative(repoRoot, xpiPath)} (${sizeKb} KB)`);
   console.log(`[pack-firefox] Linux install: about:debugging → "This Firefox" → "Load Temporary Add-on" → pick the xpi.`);
 })().catch((err) => {
   console.error('[pack-firefox] zip failed:', err);

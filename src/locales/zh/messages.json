@@ -368,6 +368,93 @@
   "chatFontFamilyClear": {
     "message": "清除自定义字体"
   },
+  "tempChatRegretButton": {
+    "message": "匿名反悔"
+  },
+  "tempChatRegretButtonTooltip": {
+    "message": "把这次匿名对话打包成续聊提示词，交接到一个正式（可保存的）对话里：先滚动到顶把所有消息加载齐，再退出匿名模式，最后把续聊提示填进输入框等你检查后发送。"
+  },
+  "tempChatRegretConfirmTitle": {
+    "message": "匿名对话反悔"
+  },
+  "tempChatRegretConfirmBodyHead": {
+    "message": "准备把当前匿名对话整理成续聊提示词，交接到新的正式对话。"
+  },
+  "tempChatRegretConfirmBodyDetail": {
+    "message": "过程需要几秒：先滚动到顶把所有历史消息加载出来（当前可见约 {count} 条），然后退出匿名模式，最后把续聊提示词填进输入框。期间请不要操作页面。"
+  },
+  "tempChatRegretConfirmBodyFooter": {
+    "message": "是否发送由你决定 — 提示词会留在输入框里等你审阅。"
+  },
+  "tempChatRegretConfirmCancel": {
+    "message": "取消"
+  },
+  "tempChatRegretConfirmContinue": {
+    "message": "继续"
+  },
+  "tempChatRegretOverlayHint": {
+    "message": "请不要操作页面"
+  },
+  "tempChatRegretMsgLoading": {
+    "message": "正在加载历史消息…"
+  },
+  "tempChatRegretMsgLoaded": {
+    "message": "已加载 {count} 条消息…"
+  },
+  "tempChatRegretMsgExtracting": {
+    "message": "正在提取对话…"
+  },
+  "tempChatRegretMsgLeavingTemp": {
+    "message": "正在退出匿名模式…"
+  },
+  "tempChatRegretMsgFillingInline": {
+    "message": "正在填入续聊提示…"
+  },
+  "tempChatRegretMsgFillingAttachment": {
+    "message": "正在填入说明 + 上传 .txt…"
+  },
+  "tempChatRegretErrNotInTempMode": {
+    "message": "当前不在匿名对话模式"
+  },
+  "tempChatRegretErrNoMessages": {
+    "message": "这个匿名对话还没有任何消息"
+  },
+  "tempChatRegretErrExtractFailed": {
+    "message": "未能从页面提取任何消息（Claude 页面结构可能变了）"
+  },
+  "tempChatRegretErrCantLeaveTemp": {
+    "message": "未能退出匿名模式 — 请手动点击「退出匿名」按钮后重试"
+  },
+  "tempChatRegretErrInputNotFound": {
+    "message": "找不到输入框 — 提示词已复制到剪贴板"
+  },
+  "tempChatRegretErrFailed": {
+    "message": "操作失败"
+  },
+  "tempChatRegretErrPartial": {
+    "message": "部分内容未填入 — 请检查输入框（同时已复制到剪贴板）"
+  },
+  "tempChatRegretOkInline": {
+    "message": "续聊提示已就绪（{count} 条消息），点击发送即可继续。"
+  },
+  "tempChatRegretOkAttachment": {
+    "message": "续聊已就绪：说明 + {filename}（{count} 条消息），点击发送即可继续。"
+  },
+  "tempChatRegretDirectiveTitle": {
+    "message": "[来自匿名 Claude 对话的交接]"
+  },
+  "tempChatRegretDirectiveInlineBody": {
+    "message": "下面是我们在匿名模式中的完整对话。请沿用同样的身份、语气、知识状态和上下文，无缝继续。\n\n**重要 — 格式说明**：下面的对话记录是从已渲染的 HTML 抽取出来的，所以你之前回复里的 markdown 格式（标题、列表、代码块、加粗、链接、表格、数学公式）都被压扁成了纯文本。**不要模仿这种扁平风格继续回复**。从你的下一条回复开始，请按你平时的样子完整使用 markdown —— 正确的标题层级、列表、围栏代码块、粗体/斜体、用 $…$ 或 $$…$$ 包裹的 KaTeX 公式等等。\n\n第一步：把下面最后一条助手消息作为衔接句重复一遍 —— 但要把它**还原成正常的 markdown 格式**（恢复你原本用过的标题、列表、代码块、公式；被压扁丢失的地方按上下文重建）。然后停下等我下一句。"
+  },
+  "tempChatRegretDirectiveAttachmentBody": {
+    "message": "匿名模式下的完整对话见**附件 .txt 文件**（按 ## You / ## Claude 分段）。请沿用同样的身份、语气、知识状态和上下文，无缝继续。\n\n**重要 — 格式说明**：附件里的对话记录是从已渲染的 HTML 抽取出来的，所以你之前回复里的 markdown 格式（标题、列表、代码块、加粗、链接、表格、数学公式）都被压扁成了纯文本。**不要模仿这种扁平风格继续回复**。从你的下一条回复开始，请按你平时的样子完整使用 markdown —— 正确的标题层级、列表、围栏代码块、粗体/斜体、用 $…$ 或 $$…$$ 包裹的 KaTeX 公式等等。\n\n第一步：把附件里最后一条助手消息作为衔接句重复一遍 —— 但要把它**还原成正常的 markdown 格式**（恢复你原本用过的标题、列表、代码块、公式；被压扁丢失的地方按上下文重建）。然后停下等我下一句。"
+  },
+  "tempChatRegretTranscriptStart": {
+    "message": "--- 匿名对话开始 ---"
+  },
+  "tempChatRegretTranscriptEnd": {
+    "message": "--- 匿名对话结束 ---"
+  },
   "formula_copied": {
     "message": "公式已复制。"
   },

@@ -12,7 +12,7 @@
  *   bun run build:chrome          # produces dist_chrome/ (with `key`)
  *   node scripts/pack-webstore.cjs  # produces claude-voyager-<ver>.zip
  *
- * Output: claude-voyager-<version>.zip in the repo root.
+ * Output: store_packages/claude-voyager-<version>.zip.
  */
 
 const fs = require('node:fs');
@@ -62,7 +62,9 @@ console.log(`[pack-webstore] manifest 'key' field: ${hadKey ? 'stripped' : 'abse
 //    on Windows, which violates the ZIP spec and fails AMO validation.
 //    Chrome Web Store has historically been lenient, but no reason to
 //    ship a non-conformant archive.
-const zipPath = path.join(repoRoot, `claude-voyager-${version}.zip`);
+const outDir = path.join(repoRoot, 'store_packages');
+fs.mkdirSync(outDir, { recursive: true });
+const zipPath = path.join(outDir, `claude-voyager-${version}.zip`);
 if (fs.existsSync(zipPath)) fs.rmSync(zipPath);
 
 const zip = new JSZip();
@@ -91,7 +93,7 @@ addDir(stage, '');
   fs.rmSync(stage, { recursive: true, force: true });
 
   const sizeKb = Math.round(fs.statSync(zipPath).size / 1024);
-  console.log(`[pack-webstore] ✓ ${path.basename(zipPath)} (${sizeKb} KB) — ready for the Chrome Web Store.`);
+  console.log(`[pack-webstore] ✓ ${path.relative(repoRoot, zipPath)} (${sizeKb} KB) — ready for the Chrome Web Store.`);
 })().catch((err) => {
   console.error('[pack-webstore] zip failed:', err);
   process.exit(1);

@@ -18,7 +18,7 @@
  *   node scripts/pack-source.cjs
  *
  * Output:
- *   claude-voyager-<version>-source.zip in the repo root.
+ *   store_packages/claude-voyager-<version>-source.zip.
  */
 
 const fs = require('node:fs');
@@ -29,7 +29,9 @@ const repoRoot = path.resolve(__dirname, '..');
 const pkgJson = JSON.parse(fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'));
 const version = pkgJson.version;
 
-const zipPath = path.join(repoRoot, `claude-voyager-${version}-source.zip`);
+const outDir = path.join(repoRoot, 'store_packages');
+fs.mkdirSync(outDir, { recursive: true });
+const zipPath = path.join(outDir, `claude-voyager-${version}-source.zip`);
 if (fs.existsSync(zipPath)) fs.rmSync(zipPath);
 
 // Top-level entries that should never enter the archive.
@@ -51,6 +53,11 @@ const SKIP_TOP = new Set([
   'coverage',
   '.nyc_output',
   '.DS_Store',
+  // Where pack-webstore / pack-firefox / pack-source themselves write
+  // their output. Excluding it keeps the source zip free of binary
+  // artefacts (and breaks the recursion where this script would zip
+  // itself's last output into the next one).
+  'store_packages',
 ]);
 
 // Pattern-based skips that apply at any depth.

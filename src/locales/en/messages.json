@@ -368,6 +368,93 @@
   "chatFontFamilyClear": {
     "message": "Clear custom font"
   },
+  "tempChatRegretButton": {
+    "message": "Undo incognito"
+  },
+  "tempChatRegretButtonTooltip": {
+    "message": "Capture this incognito chat as a continuation prompt for a fresh persistent conversation — scrolls to the top to load every message, leaves incognito mode, then pastes the prompt into the input box for you to review and send."
+  },
+  "tempChatRegretConfirmTitle": {
+    "message": "Undo incognito chat"
+  },
+  "tempChatRegretConfirmBodyHead": {
+    "message": "About to capture the current incognito chat as a continuation prompt and hand it off to a fresh persistent conversation."
+  },
+  "tempChatRegretConfirmBodyDetail": {
+    "message": "This takes a few seconds: scrolling to the top to load all messages (~{count}+ already in view), leaving incognito, then pasting the continuation prompt into the input box. Please don't touch the page during this."
+  },
+  "tempChatRegretConfirmBodyFooter": {
+    "message": "You decide whether to send — the prompt will wait in the input box for your review."
+  },
+  "tempChatRegretConfirmCancel": {
+    "message": "Cancel"
+  },
+  "tempChatRegretConfirmContinue": {
+    "message": "Continue"
+  },
+  "tempChatRegretOverlayHint": {
+    "message": "Please don't touch the page"
+  },
+  "tempChatRegretMsgLoading": {
+    "message": "Loading conversation history…"
+  },
+  "tempChatRegretMsgLoaded": {
+    "message": "Loaded {count} messages…"
+  },
+  "tempChatRegretMsgExtracting": {
+    "message": "Extracting conversation…"
+  },
+  "tempChatRegretMsgLeavingTemp": {
+    "message": "Leaving incognito…"
+  },
+  "tempChatRegretMsgFillingInline": {
+    "message": "Filling continuation prompt…"
+  },
+  "tempChatRegretMsgFillingAttachment": {
+    "message": "Filling instructions + uploading .txt…"
+  },
+  "tempChatRegretErrNotInTempMode": {
+    "message": "Not currently in incognito chat"
+  },
+  "tempChatRegretErrNoMessages": {
+    "message": "This incognito chat has no messages yet"
+  },
+  "tempChatRegretErrExtractFailed": {
+    "message": "Couldn't extract any messages from the page (Claude DOM may have changed)"
+  },
+  "tempChatRegretErrCantLeaveTemp": {
+    "message": "Couldn't leave incognito — please click Exit incognito manually and retry"
+  },
+  "tempChatRegretErrInputNotFound": {
+    "message": "Input box not found — the prompt has been copied to clipboard"
+  },
+  "tempChatRegretErrFailed": {
+    "message": "Operation failed"
+  },
+  "tempChatRegretErrPartial": {
+    "message": "Partial paste — please check the input box (also copied to clipboard)"
+  },
+  "tempChatRegretOkInline": {
+    "message": "Continuation prompt is ready ({count} messages). Click send to continue."
+  },
+  "tempChatRegretOkAttachment": {
+    "message": "Continuation is ready: instructions + {filename} ({count} messages). Click send to continue."
+  },
+  "tempChatRegretDirectiveTitle": {
+    "message": "[Hand-off from an incognito Claude chat]"
+  },
+  "tempChatRegretDirectiveInlineBody": {
+    "message": "The following is our full conversation from incognito mode. Adopt the same persona, tone, knowledge state, and context, and continue seamlessly.\n\nIMPORTANT — formatting: the transcript below was extracted from rendered HTML, so the markdown formatting of your previous replies (headings, lists, code blocks, bold, links, tables, math) was flattened to plain text. Do NOT mimic that flat style going forward. From your very next reply, render markdown as you normally would — full markdown semantics, proper headers, lists, fenced code blocks, bold/italic, KaTeX math wrapped in $…$ or $$…$$, etc.\n\nStep 1: Repeat the LAST assistant message below as the bridging line — but RE-FORMAT it back into proper markdown (recover the headers, lists, code blocks, math you originally used; reconstruct from context where the flattening was lossy). Then stop and wait for my next message."
+  },
+  "tempChatRegretDirectiveAttachmentBody": {
+    "message": "The full conversation from incognito mode is in the attached .txt file (split into ## You / ## Claude sections). Adopt the same persona, tone, knowledge state, and context, and continue seamlessly.\n\nIMPORTANT — formatting: the attached transcript was extracted from rendered HTML, so the markdown formatting of your previous replies (headings, lists, code blocks, bold, links, tables, math) was flattened to plain text. Do NOT mimic that flat style going forward. From your very next reply, render markdown as you normally would — full markdown semantics, proper headers, lists, fenced code blocks, bold/italic, KaTeX math wrapped in $…$ or $$…$$, etc.\n\nStep 1: Repeat the LAST assistant message from the attachment as the bridging line — but RE-FORMAT it back into proper markdown (recover the headers, lists, code blocks, math you originally used; reconstruct from context where the flattening was lossy). Then stop and wait for my next message."
+  },
+  "tempChatRegretTranscriptStart": {
+    "message": "--- incognito transcript start ---"
+  },
+  "tempChatRegretTranscriptEnd": {
+    "message": "--- incognito transcript end ---"
+  },
   "formula_copied": {
     "message": "Formula copied."
   },
